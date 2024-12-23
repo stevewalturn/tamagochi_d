@@ -1,14 +1,37 @@
 import 'package:stacked/stacked_annotations.dart';
 
-/// {@template analytics_service}
-/// A wrapper for Analytics which encapsulates the implementation of
-/// []
-///
-/// {@endtemplate}
-class AnalyticService extends InitializableDependency {
-  /// {@macro analytics_service}
-  AnalyticService();
-
+class AnalyticService implements InitializableDependency {
   @override
-  Future<void> init() async {}
+  Future<void> init() async {
+    try {
+      // TODO: Initialize analytics service
+    } catch (e) {
+      throw Exception(
+          'Failed to initialize analytics service: ${e.toString()}');
+    }
+  }
+
+  void logPetAction(String action) {
+    try {
+      // TODO: Implement analytics logging
+    } catch (e) {
+      // Silently handle analytics errors to not disrupt user experience
+    }
+  }
+
+  void logPetCreated(String petName) {
+    try {
+      // TODO: Implement analytics logging
+    } catch (e) {
+      // Silently handle analytics errors to not disrupt user experience
+    }
+  }
+
+  void logPetDeath(String petName, int lifespan) {
+    try {
+      // TODO: Implement analytics logging
+    } catch (e) {
+      // Silently handle analytics errors to not disrupt user experience
+    }
+  }
 }
