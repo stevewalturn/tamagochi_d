@@ -1,5 +1,4 @@
 import 'dart:math';
-
 import 'package:flutter/material.dart';
 
 const double _tinySize = 5;
@@ -28,6 +27,7 @@ Widget spacedDivider = const Column(
 );
 
 Widget verticalSpace(double height) => SizedBox(height: height);
+Widget horizontalSpace(double width) => SizedBox(width: width);
 
 double screenWidth(BuildContext context) => MediaQuery.of(context).size.width;
 double screenHeight(BuildContext context) => MediaQuery.of(context).size.height;
@@ -59,6 +59,7 @@ double quarterScreenWidth(BuildContext context) =>
 
 double getResponsiveHorizontalSpaceMedium(BuildContext context) =>
     screenWidthFraction(context, dividedBy: 10);
+
 double getResponsiveSmallFontSize(BuildContext context) =>
     getResponsiveFontSize(context, fontSize: 14, max: 15);
 
@@ -80,11 +81,10 @@ double getResponsiveFontSize(
   double? max,
 }) {
   max ??= 100;
+  fontSize ??= 16;
 
-  final responsiveSize = min(
-    screenWidthFraction(context, dividedBy: 10) * ((fontSize ?? 100) / 100),
-    max,
-  );
+  final responsiveSize =
+      min(screenWidthFraction(context, dividedBy: 10) * (fontSize / 100), max);
 
   return responsiveSize;
 }

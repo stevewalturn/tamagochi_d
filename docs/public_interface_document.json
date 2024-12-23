@@ -1,7 +1,7 @@
 {
   "package_name": "com.steve_os.tamagochi_d",
-  "project_description": "The Flutter application follows the Stacked architecture, featuring routing, dependency injection, and dialog/bottom sheet management. It includes a startup screen, a home screen with a counter, a dialog, and a bottom sheet. The application also integrates with Firebase for analytics tracking and supports localization and multiple flavors (development and production).",
-  "architecture_overview": "The application is structured using the Stacked architecture, which separates the concerns of the UI, view models, and services. It uses Stacked for state management, routing, and dependency injection. The main components include the App, AppView, and various feature-specific views and view models. The application also utilizes services for managing dialogs, bottom sheets, and navigation, as well as observing screen transitions for analytics purposes.",
+  "project_description": "The Flutter application is a Tamagotchi-style virtual pet game that allows users to create and care for their own pet. The main features include:\n\n- Pet creation: Users can create a new pet by providing a name.\n- Pet actions: Users can perform various actions on their pet, such as feeding, playing, cleaning, and healing, which affect the pet's stats and mood.\n- Pet shop: Users can access a pet shop to purchase items and actions for their pet using in-game coins.\n- Pet death: If a pet's stats deteriorate to critical levels, the pet will die, and the user will be presented with a dialog to start a new game.\n- Stat tracking: The application tracks and displays the pet's current stats, including hunger, happiness, health, energy, and hygiene levels.\n- Localization: The app supports multiple languages and can be localized for different regions.\n- Analytics: The app integrates with Firebase Analytics to track user interactions and screen views.",
+  "architecture_overview": "The application follows the Stacked architecture, which separates the concerns of the UI, view models, and services. It uses Stacked for state management, routing, and dependency injection.\n\nThe main components include:\n\n- App: The main entry point that sets up the Stacked architecture and navigation.\n- AppView: The root widget that manages the application's overall structure, including navigation, localization, and event handling.\n- Various feature-specific views and view models (e.g., HomeView, StartupView, PetActionsView, PetStatusView, PetShopSheet).\n- Services (e.g., BottomSheetService, DialogService, NavigationService, PetService, AnalyticService) that handle specific functionalities and dependencies.\n- Localization and flavor management for development and production environments.",
   "files": [
     {
       "name": "lib/app/app.dart",
@@ -840,6 +840,604 @@
         "package:stacked/stacked.dart",
         "package:stacked_services/stacked_services.dart"
       ]
+    },
+    {
+      "name": "lib/models/pet_actions.dart",
+      "description": "This file defines the `PetAction` enum, which represents the various actions a user can perform on their pet in the application. It encapsulates the cost and description for each action, and provides a utility method to check if the user can afford a given action.",
+      "class_diagram": "@startuml\nenum PetAction {\n    feed(cost: 10, description: 'Feed your pet')\n    play(cost: 5, description: 'Play with your pet')\n    clean(cost: 15, description: 'Clean your pet')\n    heal(cost: 30, description: 'Heal your pet')\n    sleep(cost: 0, description: 'Let your pet sleep')\n}\n\nPetAction {\n    + int cost\n    + String description\n    + bool canAfford(int coins)\n}\n@enduml",
+      "methods": [
+        {
+          "name": "canAfford",
+          "description": "Checks if the user has enough coins to perform the action",
+          "parameters": [
+            "coins"
+          ],
+          "return_type": "bool"
+        }
+      ],
+      "dependencies": []
+    },
+    {
+      "name": "lib/ui/bottom_sheets/pet_shop/pet_shop_sheet_model.dart",
+      "description": "This Dart file contains the `PetShopSheetModel` class, which is responsible for managing the state and functionality of the pet shop bottom sheet in the application. The main purpose of this class is to handle the logic for purchasing pet-related items, such as food, toys, or other accessories.",
+      "class_diagram": "@startuml\nclass PetShopSheetModel {\n  - _petService: PetService\n  - _modelError: String\n  + modelError: String\n  + availableCoins: int\n  + canPurchase(PetAction action): bool\n  + purchaseItem(PetAction action): Future<void>\n}\n@enduml",
+      "methods": [
+        {
+          "name": "canPurchase",
+          "description": "Checks if the user can afford to purchase the given `PetAction` based on their current number of coins.",
+          "parameters": [
+            "PetAction action"
+          ],
+          "return_type": "bool"
+        },
+        {
+          "name": "purchaseItem",
+          "description": "Attempts to purchase the given `PetAction` item by calling the `performAction` method on the `PetService`. If successful, the `_modelError` is set to `null`. If an error occurs, the `_modelError` is set to a descriptive error message.",
+          "parameters": [
+            "PetAction action"
+          ],
+          "return_type": "Future<void>"
+        }
+      ],
+      "dependencies": [
+        "stacked",
+        "tamagochi_d/app/app.locator",
+        "tamagochi_d/models/pet_actions",
+        "tamagochi_d/services/pet_service"
+      ]
+    },
+    {
+      "name": "lib/ui/dialogs/pet_death_dialog/pet_death_dialog.dart",
+      "description": "This file contains the implementation of the PetDeathDialog class, which is responsible for displaying a dialog to the user when their pet has died in the Tamagotchi-like application. The dialog provides the user with options to either start a new game with a new pet or dismiss the dialog.",
+      "class_diagram": "@startuml\nclass PetDeathDialog extends StackedView<PetDeathDialogModel> {\n  - DialogRequest request\n  - Function(DialogResponse) completer\n  + builder(BuildContext, PetDeathDialogModel, Widget?)\n  + viewModelBuilder(BuildContext): PetDeathDialogModel\n}\n\nclass PetDeathDialogModel {\n  + modelError: String\n}\n@enduml",
+      "methods": [
+        {
+          "name": "builder",
+          "description": "Builds the UI for the PetDeathDialog, including the dialog title, description, and action buttons.",
+          "parameters": [
+            "BuildContext context",
+            "PetDeathDialogModel viewModel",
+            "Widget? child"
+          ],
+          "return_type": "Widget"
+        },
+        {
+          "name": "viewModelBuilder",
+          "description": "Creates a new instance of the PetDeathDialogModel, which is used to manage the state and functionality of the dialog.",
+          "parameters": [
+            "BuildContext context"
+          ],
+          "return_type": "PetDeathDialogModel"
+        }
+      ],
+      "dependencies": [
+        "package:flutter/material.dart",
+        "package:stacked/stacked.dart",
+        "package:stacked_services/stacked_services.dart",
+        "package:tamagochi_d/ui/common/ui_helpers.dart",
+        "package:tamagochi_d/ui/dialogs/pet_death_dialog/pet_death_dialog_model.dart"
+      ]
+    },
+    {
+      "name": "lib/ui/dialogs/pet_death_dialog/pet_death_dialog_model.dart",
+      "description": "This file contains the PetDeathDialogModel class, which is responsible for handling the logic and state related to the pet death dialog in the Tamagochi application. It provides the functionality to start a new pet when the user's previous pet has died.",
+      "class_diagram": "@startuml\nclass PetDeathDialogModel {\n  - _petService: PetService\n  - _modelError: String?\n  + get modelError(): String?\n  + startNewPet(String name): Future<void>\n}\nPetDeathDialogModel --> PetService\n@enduml",
+      "methods": [
+        {
+          "name": "startNewPet",
+          "description": "Starts a new pet by creating a new pet using the PetService. If the creation is successful, the _modelError is set to null, otherwise it is set to an error message.",
+          "parameters": [
+            "String name"
+          ],
+          "return_type": "Future<void>"
+        }
+      ],
+      "dependencies": [
+        "stacked",
+        "tamagochi_d/app/app.locator",
+        "tamagochi_d/services/pet_service"
+      ]
+    },
+    {
+      "name": "lib/ui/views/pet_actions/pet_actions_viewmodel.dart",
+      "description": "This file contains the PetActionsViewModel class, which is responsible for managing the state and behavior related to pet actions in the Tamagochi application. The main purpose of this class is to provide a centralized location for handling user interactions with pet actions, such as performing actions and managing the available coins.",
+      "class_diagram": "@startuml\nclass PetActionsViewModel {\n  - _petService: PetService\n  - _modelError: String\n  + modelError: String\n  + availableCoins: int\n  + stream: Stream<PetState>\n  + canPerformAction(PetAction action): bool\n  + performAction(PetAction action): Future<void>\n  + clearError(): void\n}\n@enduml",
+      "methods": [
+        {
+          "name": "canPerformAction",
+          "description": "Checks if the user can perform the given pet action based on the available coins.",
+          "parameters": [
+            "PetAction action"
+          ],
+          "return_type": "bool"
+        },
+        {
+          "name": "performAction",
+          "description": "Performs the given pet action, updating the pet's state and the available coins.",
+          "parameters": [
+            "PetAction action"
+          ],
+          "return_type": "Future<void>"
+        },
+        {
+          "name": "clearError",
+          "description": "Clears any error messages that may have been set and notifies listeners of the change.",
+          "parameters": null,
+          "return_type": "void"
+        }
+      ],
+      "dependencies": [
+        "package:stacked/stacked.dart",
+        "package:tamagochi_d/app/app.locator.dart",
+        "package:tamagochi_d/models/pet_actions.dart",
+        "package:tamagochi_d/models/pet_state.dart",
+        "package:tamagochi_d/services/pet_service.dart"
+      ]
+    },
+    {
+      "name": "lib/ui/views/pet_statistics/pet_statistics_viewmodel.dart",
+      "description": "The PetStatisticsViewModel is responsible for managing the state and UI logic related to displaying the statistics of a pet in a Tamagotchi-style application. It provides methods to retrieve and format the pet's last fed, cleaned, and played times, as well as the time elapsed since those events.",
+      "class_diagram": "@startuml\n  class PetStatisticsViewModel {\n    + PetState? get pet\n    + String getLastFedTime()\n    + String getLastCleanedTime()\n    + String getLastPlayedTime()\n    + Duration getTimeSinceLastFed()\n    + Duration getTimeSinceLastCleaned()\n    + Duration getTimeSinceLastPlayed()\n  }\n  @enduml",
+      "methods": [
+        {
+          "name": "getLastFedTime",
+          "description": "Retrieves the last time the pet was fed and formats it as a string",
+          "parameters": null,
+          "return_type": "String"
+        },
+        {
+          "name": "getLastCleanedTime",
+          "description": "Retrieves the last time the pet was cleaned and formats it as a string",
+          "parameters": null,
+          "return_type": "String"
+        },
+        {
+          "name": "getLastPlayedTime",
+          "description": "Retrieves the last time the pet was played with and formats it as a string",
+          "parameters": null,
+          "return_type": "String"
+        },
+        {
+          "name": "getTimeSinceLastFed",
+          "description": "Calculates the time elapsed since the pet was last fed",
+          "parameters": null,
+          "return_type": "Duration"
+        },
+        {
+          "name": "getTimeSinceLastCleaned",
+          "description": "Calculates the time elapsed since the pet was last cleaned",
+          "parameters": null,
+          "return_type": "Duration"
+        },
+        {
+          "name": "getTimeSinceLastPlayed",
+          "description": "Calculates the time elapsed since the pet was last played with",
+          "parameters": null,
+          "return_type": "Duration"
+        }
+      ],
+      "dependencies": [
+        "intl/intl.dart",
+        "stacked/stacked.dart",
+        "tamagochi_d/app/app.locator.dart",
+        "tamagochi_d/models/pet_state.dart",
+        "tamagochi_d/services/pet_service.dart"
+      ]
+    },
+    {
+      "name": "lib/ui/views/pet_statistics/pet_statistics_view.dart",
+      "description": "The `PetStatisticsView` class is responsible for displaying the statistics and key information about the user's pet in the Tamagotchi-style application. It provides a visual overview of the pet's status, including when the pet was last fed, cleaned, and played with, as well as the total coins earned by the pet.",
+      "class_diagram": "@startuml\nclass PetStatisticsView {\n  -BuildContext context\n  -PetStatisticsViewModel viewModel\n  +builder(context, viewModel, child): Widget\n  +_buildStatCard(title, value, icon): Widget\n  +viewModelBuilder(context): PetStatisticsViewModel\n}\n@enduml",
+      "methods": [
+        {
+          "name": "builder",
+          "description": "Builds the UI for the `PetStatisticsView` based on the current state of the `PetStatisticsViewModel`.",
+          "parameters": [
+            "BuildContext context",
+            "PetStatisticsViewModel viewModel",
+            "Widget? child"
+          ],
+          "return_type": "Widget"
+        },
+        {
+          "name": "_buildStatCard",
+          "description": "Builds a single statistic card with the given title, value, and icon.",
+          "parameters": [
+            "String title",
+            "String value",
+            "IconData icon"
+          ],
+          "return_type": "Widget"
+        },
+        {
+          "name": "viewModelBuilder",
+          "description": "Creates an instance of the `PetStatisticsViewModel` to be used by the `PetStatisticsView`.",
+          "parameters": [
+            "BuildContext context"
+          ],
+          "return_type": "PetStatisticsViewModel"
+        }
+      ],
+      "dependencies": [
+        "flutter/material.dart",
+        "stacked/stacked.dart",
+        "tamagochi_d/ui/common/ui_helpers.dart",
+        "tamagochi_d/ui/views/pet_statistics/pet_statistics_viewmodel.dart"
+      ]
+    },
+    {
+      "name": "lib/ui/views/pet_actions/pet_actions_view.dart",
+      "description": "The PetActionsView class is responsible for displaying a screen that allows the user to perform various actions on their pet. It is part of the Tamagochi_d application, which is a virtual pet management app.",
+      "class_diagram": "@startuml\nclass PetActionsView {\n  +builder(BuildContext context, PetActionsViewModel viewModel, Widget? child): Widget\n  +viewModelBuilder(BuildContext context): PetActionsViewModel\n}\n\nclass PetActionsViewModel {\n  +modelError: String?\n  +availableCoins: int\n  +performAction(PetAction action)\n  +canPerformAction(PetAction action): bool\n}\n\nclass PetActionButton {\n  +action: PetAction\n  +onPressed()\n  +isEnabled: bool\n}\n\nPetActionsView --> PetActionsViewModel\nPetActionsView --> PetActionButton\n@enduml",
+      "methods": [
+        {
+          "name": "builder",
+          "description": "Builds the UI for the PetActionsView, including displaying the available coins, a list of pet actions, and any error messages.",
+          "parameters": [
+            "BuildContext context",
+            "PetActionsViewModel viewModel",
+            "Widget? child"
+          ],
+          "return_type": "Widget"
+        },
+        {
+          "name": "viewModelBuilder",
+          "description": "Creates an instance of the PetActionsViewModel, which provides the data and functionality for the PetActionsView.",
+          "parameters": [
+            "BuildContext context"
+          ],
+          "return_type": "PetActionsViewModel"
+        }
+      ],
+      "dependencies": [
+        "package:flutter/material.dart",
+        "package:stacked/stacked.dart",
+        "package:tamagochi_d/models/pet_actions.dart",
+        "package:tamagochi_d/ui/common/ui_helpers.dart",
+        "package:tamagochi_d/ui/views/pet_actions/pet_actions_viewmodel.dart",
+        "package:tamagochi_d/ui/widgets/pet_action_button/pet_action_button.dart"
+      ]
+    },
+    {
+      "name": "lib/ui/widgets/pet_action_button/pet_action_button.dart",
+      "description": "This Dart file defines a custom Flutter widget called `PetActionButton` that represents a button for performing various actions on a virtual pet (tamagochi) in the application. The button displays the action, its cost in coins, and an associated icon. The button can be enabled or disabled based on the application state.",
+      "class_diagram": "@startuml\nclass PetActionButton {\n  +PetAction action\n  +VoidCallback onPressed\n  +bool isEnabled\n  +build(BuildContext): Widget\n  -_getActionColor(): Color\n  -_getActionIcon(): Icon\n}\n@enduml",
+      "methods": [
+        {
+          "name": "build",
+          "description": "Builds the UI for the `PetActionButton` widget, including the button's appearance and layout.",
+          "parameters": [
+            "BuildContext"
+          ],
+          "return_type": "Widget"
+        },
+        {
+          "name": "_getActionColor",
+          "description": "Returns the appropriate color for the button based on the type of pet action.",
+          "parameters": null,
+          "return_type": "Color"
+        },
+        {
+          "name": "_getActionIcon",
+          "description": "Returns the appropriate icon for the button based on the type of pet action.",
+          "parameters": null,
+          "return_type": "Icon"
+        }
+      ],
+      "dependencies": [
+        "flutter/material.dart",
+        "tamagochi_d/models/pet_actions.dart",
+        "tamagochi_d/ui/common/app_colors.dart"
+      ]
+    },
+    {
+      "name": "lib/ui/widgets/pet_avatar/pet_avatar.dart",
+      "description": "The `PetAvatar` widget is responsible for rendering a visual representation of a pet's current mood in a Tamagotchi-style game. It provides a circular container with an appropriate background color and an emoji icon that changes based on the pet's mood.",
+      "class_diagram": "@startuml\nclass PetAvatar {\n  -PetMood mood\n  -double size\n  +build(context): Widget\n  -_getBackgroundColor(): Color\n  -_getPetEmoji(): Widget\n}\n@enduml",
+      "methods": [
+        {
+          "name": "build",
+          "description": "Builds the widget tree for the PetAvatar, including the circular container, background color, and emoji icon.",
+          "parameters": [
+            "context"
+          ],
+          "return_type": "Widget"
+        },
+        {
+          "name": "_getBackgroundColor",
+          "description": "Determines the appropriate background color for the PetAvatar based on the pet's current mood.",
+          "parameters": null,
+          "return_type": "Color"
+        },
+        {
+          "name": "_getPetEmoji",
+          "description": "Selects the appropriate emoji icon to display based on the pet's current mood.",
+          "parameters": null,
+          "return_type": "Widget"
+        }
+      ],
+      "dependencies": [
+        "package:flutter/material.dart",
+        "package:tamagochi_d/models/pet_state.dart",
+        "package:tamagochi_d/ui/common/app_colors.dart"
+      ]
+    },
+    {
+      "name": "lib/ui/widgets/pet_mood_indicator/pet_mood_indicator.dart",
+      "description": "The `PetMoodIndicator` widget is responsible for displaying the current mood of a pet in the application. It provides a visual representation of the pet's emotional state, which is crucial for the user's understanding of the pet's well-being and needs.",
+      "class_diagram": "@startuml\nclass PetMoodIndicator {\n  -PetMood mood\n  +Widget build(BuildContext context)\n  -Color _getMoodColor()\n  -Icon _getMoodIcon()\n  -String _getMoodText()\n}\n@enduml",
+      "methods": [
+        {
+          "name": "build",
+          "description": "Builds the widget tree for the `PetMoodIndicator`, displaying the appropriate mood icon, color, and text based on the provided `PetMood`.",
+          "parameters": [
+            "BuildContext context"
+          ],
+          "return_type": "Widget"
+        },
+        {
+          "name": "_getMoodColor",
+          "description": "Determines the appropriate color for the mood indicator based on the `PetMood` value.",
+          "parameters": null,
+          "return_type": "Color"
+        },
+        {
+          "name": "_getMoodIcon",
+          "description": "Determines the appropriate icon for the mood indicator based on the `PetMood` value.",
+          "parameters": null,
+          "return_type": "Icon"
+        },
+        {
+          "name": "_getMoodText",
+          "description": "Determines the appropriate text for the mood indicator based on the `PetMood` value.",
+          "parameters": null,
+          "return_type": "String"
+        }
+      ],
+      "dependencies": [
+        "package:flutter/material.dart",
+        "package:tamagochi_d/models/pet_state.dart",
+        "package:tamagochi_d/ui/common/app_colors.dart"
+      ]
+    },
+    {
+      "name": "lib/ui/widgets/pet_stats_bar/pet_stats_bar.dart",
+      "description": "This file contains the implementation of the `PetStatsBar` widget, which is responsible for displaying a progress bar with a label and a customizable color. It is a reusable UI component that is used to visualize the status or health of a pet in a Tamagotchi-style application.",
+      "class_diagram": "@startuml\nclass PetStatsBar {\n  -String label\n  -int value\n  -Color? color\n  +build(BuildContext context): Widget\n}\n@enduml",
+      "methods": [
+        {
+          "name": "build",
+          "description": "Builds the UI for the `PetStatsBar` widget, which consists of a label and a linear progress indicator.",
+          "parameters": [
+            "BuildContext context"
+          ],
+          "return_type": "Widget"
+        }
+      ],
+      "dependencies": [
+        "flutter/material.dart",
+        "tamagochi_d/ui/common/app_colors.dart"
+      ]
+    },
+    {
+      "name": "lib/repository/pet_repository.dart",
+      "description": "The PetRepository class is responsible for managing the persistent storage and retrieval of a user's pet data. It provides a simple API for saving, loading, and deleting the current pet state, abstracting away the underlying data storage implementation.",
+      "class_diagram": "@startuml\nclass PetRepository {\n  - _currentPet: PetState\n  + savePet(pet: PetState): Future<void>\n  + loadPet(): Future<PetState?>\n  + deletePet(): Future<void>\n}\n@enduml",
+      "methods": [
+        {
+          "name": "savePet",
+          "description": "Saves the current pet state to persistent storage.",
+          "parameters": [
+            "pet: PetState"
+          ],
+          "return_type": "Future<void>"
+        },
+        {
+          "name": "loadPet",
+          "description": "Retrieves the current pet state from persistent storage.",
+          "parameters": null,
+          "return_type": "Future<PetState?>"
+        },
+        {
+          "name": "deletePet",
+          "description": "Removes the current pet state from persistent storage.",
+          "parameters": null,
+          "return_type": "Future<void>"
+        }
+      ],
+      "dependencies": [
+        "package:tamagochi_d/models/pet_state.dart"
+      ]
+    },
+    {
+      "name": "lib/models/pet_state.dart",
+      "description": "Defines the state management model for a virtual pet in a Tamagochi-style application, capturing comprehensive pet attributes and lifecycle management",
+      "class_diagram": "@startuml\nclass PetState {\n  +String name\n  +PetStats stats\n  +PetMood mood\n  +DateTime lastFed\n  +DateTime lastCleaned\n  +DateTime lastPlayed\n  +bool isSleeping\n  +int coins\n  +PetState initial(String name)\n  +PetState copyWith(...)\n}\n@enduml",
+      "methods": [
+        {
+          "name": "PetState.initial",
+          "description": "Creates the initial state for a new pet with default starting values",
+          "parameters": [
+            "name"
+          ],
+          "return_type": "PetState"
+        },
+        {
+          "name": "copyWith",
+          "description": "Creates a new PetState instance with selectively updated properties",
+          "parameters": [
+            "name",
+            "stats",
+            "mood",
+            "lastFed",
+            "lastCleaned",
+            "lastPlayed",
+            "isSleeping",
+            "coins"
+          ],
+          "return_type": "PetState"
+        }
+      ],
+      "dependencies": [
+        "package:equatable/equatable.dart",
+        "package:tamagochi_d/models/pet_stats.dart"
+      ]
+    },
+    {
+      "name": "lib/models/pet_stats.dart",
+      "description": "The `PetStats` class represents the key metrics and overall condition of a pet in a game or application. It encapsulates the pet's hunger, happiness, health, energy, and hygiene levels, and provides functionality to manage and update these attributes.",
+      "class_diagram": "@startuml\nclass PetStats {\n  -int hunger\n  -int happiness\n  -int health\n  -int energy\n  -int hygiene\n  +PetStats.initial()\n  +PetStats copyWith({...})\n  +bool get isDead\n}\n@enduml",
+      "methods": [
+        {
+          "name": "PetStats.initial()",
+          "description": "Factory constructor that creates an initial `PetStats` instance with default values for all attributes.",
+          "parameters": null,
+          "return_type": "PetStats"
+        },
+        {
+          "name": "copyWith",
+          "description": "Creates a new `PetStats` instance with updated values for one or more attributes.",
+          "parameters": [
+            "int? hunger",
+            "int? happiness",
+            "int? health",
+            "int? energy",
+            "int? hygiene"
+          ],
+          "return_type": "PetStats"
+        },
+        {
+          "name": "isDead",
+          "description": "A getter that returns `true` if any of the pet's attribute levels have dropped to 0 or below, indicating the pet has died.",
+          "parameters": null,
+          "return_type": "bool"
+        }
+      ],
+      "dependencies": [
+        "package:equatable/equatable.dart"
+      ]
+    },
+    {
+      "name": "lib/services/pet_service.dart",
+      "description": "A service responsible for managing the lifecycle, state, and interactions of a virtual pet in a Tamagochi-like application. It handles pet creation, action performance, stat tracking, mood calculation, and periodic decay of pet attributes.",
+      "class_diagram": "@startuml\nclass PetService {\n  -PetRepository _repository\n  -PetState _currentPet\n  +Future<void> init()\n  +Future<void> createPet(String name)\n  +Future<void> performAction(PetAction action)\n  -PetStats _calculateNewStats(PetAction action)\n  -PetMood _calculateMood(PetStats stats)\n}\n@enduml",
+      "methods": [
+        {
+          "name": "init",
+          "description": "Initializes the pet service by loading an existing pet from repository and starting decay timer",
+          "parameters": null,
+          "return_type": "Future<void>"
+        },
+        {
+          "name": "createPet",
+          "description": "Creates a new pet with the given name, saves it to repository, and starts tracking its state",
+          "parameters": [
+            "name"
+          ],
+          "return_type": "Future<void>"
+        },
+        {
+          "name": "performAction",
+          "description": "Executes a specific action on the pet, updating its stats, coins, and mood based on the action",
+          "parameters": [
+            "action"
+          ],
+          "return_type": "Future<void>"
+        }
+      ],
+      "dependencies": [
+        "dart:async",
+        "stacked/stacked_annotations.dart",
+        "tamagochi_d/models/pet_actions.dart",
+        "tamagochi_d/models/pet_state.dart",
+        "tamagochi_d/models/pet_stats.dart",
+        "tamagochi_d/repository/pet_repository.dart"
+      ]
+    },
+    {
+      "name": "lib/ui/bottom_sheets/pet_shop/pet_shop_sheet.dart",
+      "description": "The `PetShopSheet` class is responsible for displaying a bottom sheet UI component that allows users to interact with a virtual pet shop. This component provides the core functionality for purchasing various actions and items for the user's pet, and it serves as the primary interface for managing the pet's state and capabilities.",
+      "class_diagram": "```\n@startuml\nclass PetShopSheet {\n  +Function(SheetResponse)? completer\n  +SheetRequest request\n  +builder(BuildContext, PetShopSheetModel, Widget?): Widget\n  +viewModelBuilder(BuildContext): PetShopSheetModel\n}\n\nclass PetShopSheetModel {\n  +availableCoins: int\n  +modelError: String?\n  +canPurchase(PetAction): bool\n  +purchaseItem(PetAction): void\n}\n\nclass _ShopItem {\n  +action: PetAction\n  +onTap: VoidCallback\n  +isEnabled: bool\n  +builder(BuildContext): Widget\n}\n@enduml\n```",
+      "methods": [
+        {
+          "name": "builder",
+          "description": "Builds the UI for the PetShopSheet, including the list of available actions, the current coin balance, and the close button.",
+          "parameters": [
+            "BuildContext",
+            "PetShopSheetModel",
+            "Widget?"
+          ],
+          "return_type": "Widget"
+        },
+        {
+          "name": "viewModelBuilder",
+          "description": "Initializes the PetShopSheetModel, which manages the state and logic for the pet shop functionality.",
+          "parameters": [
+            "BuildContext"
+          ],
+          "return_type": "PetShopSheetModel"
+        },
+        {
+          "name": "canPurchase",
+          "description": "Determines whether the user can purchase a given PetAction based on their available coins.",
+          "parameters": [
+            "PetAction"
+          ],
+          "return_type": "bool"
+        },
+        {
+          "name": "purchaseItem",
+          "description": "Handles the logic for purchasing a PetAction, updating the user's coin balance and triggering any necessary updates to the pet's state.",
+          "parameters": [
+            "PetAction"
+          ],
+          "return_type": null
+        }
+      ],
+      "dependencies": [
+        "package:flutter/material.dart",
+        "package:stacked/stacked.dart",
+        "package:stacked_services/stacked_services.dart",
+        "package:tamagochi_d/models/pet_actions.dart",
+        "package:tamagochi_d/ui/bottom_sheets/pet_shop/pet_shop_sheet_model.dart",
+        "package:tamagochi_d/ui/common/app_colors.dart",
+        "package:tamagochi_d/ui/common/ui_helpers.dart"
+      ]
+    },
+    {
+      "name": "lib/ui/views/pet_status/pet_status_viewmodel.dart",
+      "description": "This Dart file contains the PetStatusViewModel class, which is responsible for managing the state and functionality related to a user's pet in a Tamagotchi-style mobile application.",
+      "class_diagram": "@startuml\nclass PetStatusViewModel extends StreamViewModel<PetState> {\n  - _petService: PetService\n  - _modelError: String\n  + modelError: String\n  + currentPet: PetState\n  + stream: Stream<PetState>\n  + createNewPet(String name): Future<void>\n  + clearError(): void\n}\n@enduml",
+      "methods": [
+        {
+          "name": "createNewPet",
+          "description": "Creates a new pet with the given name in the application's pet service.",
+          "parameters": [
+            "String name"
+          ],
+          "return_type": "Future<void>"
+        },
+        {
+          "name": "clearError",
+          "description": "Clears the model error and notifies listeners of the updated state.",
+          "parameters": null,
+          "return_type": "void"
+        }
+      ],
+      "dependencies": [
+        "dart:async",
+        "package:stacked/stacked.dart",
+        "package:tamagochi_d/app/app.locator.dart",
+        "package:tamagochi_d/models/pet_state.dart",
+        "package:tamagochi_d/services/pet_service.dart"
+      ]
+    },
+    {
+      "name": "lib/ui/views/pet_status/pet_status_view.dart",
+      "description": "Auto-generated entry for lib/ui/views/pet_status/pet_status_view.dart (analysis failed)",
+      "class_diagram": "@startuml\nclass Auto\n@enduml",
+      "methods": [],
+      "dependencies": []
     }
   ],
   "dependencies": [
@@ -864,7 +1462,7 @@
       "purpose": "Creating gaps in layouts"
     }
   ],
-  "sequence_diagram": "@startuml\nactor User\nparticipant main\nparticipant AppView\nparticipant StartupView\nparticipant StartupViewModel\nparticipant HomeView\nparticipant HomeViewModel\n\nUser -> main: Launch app\nmain -> AppView: Create and run\nAppView -> StartupView: Initialize\nStartupView -> StartupViewModel: Run startup logic\nStartupViewModel -> HomeView: Navigate on completion\nHomeView -> HomeViewModel: Initialize\nUser -> HomeView: Interact\nHomeView -> HomeViewModel: Handle user actions\nHomeViewModel -> HomeView: Update UI\nHomeViewModel -> DialogService: Show dialog\nHomeViewModel -> BottomSheetService: Show bottom sheet\n@enduml",
-  "state_management_flow": "The application uses the Stacked architecture for state management. Each view has a corresponding ViewModel that handles the business logic and state for that view. The ViewModels are responsible for updating the UI, interacting with services (e.g., DialogService, BottomSheetService), and managing the application's overall state. The app.locator.dart file sets up the necessary dependency injections, allowing the ViewModels to access the required services.",
-  "navigation_flow": "The application's navigation is managed using the Stacked Router, defined in app.router.dart. The main entry point is the AppView, which initializes the Stacked architecture and displays the StartupView. After the startup logic is completed, the StartupViewModel navigates to the HomeView. The HomeView allows the user to interact with the application, triggering updates to the HomeViewModel, which in turn updates the UI and can show dialogs or bottom sheets as needed."
+  "sequence_diagram": "@startuml\nactor User\nparticipant main\nparticipant AppView\nparticipant StartupView\nparticipant StartupViewModel\nparticipant PetStatusView\nparticipant PetStatusViewModel\nparticipant PetActionsView\nparticipant PetActionsViewModel\nparticipant PetShopSheet\nparticipant PetShopSheetModel\nparticipant PetDeathDialog\nparticipant PetDeathDialogModel\n\nUser -> main: Launch app\nmain -> AppView: Create and run\nAppView -> StartupView: Initialize\nStartupView -> StartupViewModel: Run startup logic\nStartupViewModel -> PetStatusView: Navigate on completion\nPetStatusView -> PetStatusViewModel: Initialize\nUser -> PetStatusView: Create new pet\nPetStatusViewModel -> PetService: Create new pet\nPetService -> PetRepository: Save new pet\nUser -> PetActionsView: Perform pet actions\nPetActionsView -> PetActionsViewModel: Handle user actions\nPetActionsViewModel -> PetService: Perform pet actions\nPetService -> PetRepository: Update pet state\nUser -> PetShopSheet: Open pet shop\nPetShopSheet -> PetShopSheetModel: Initialize\nPetShopSheetModel -> PetService: Retrieve pet stats and coins\nUser -> PetShopSheet: Purchase pet items\nPetShopSheetModel -> PetService: Update pet state and coins\nPetService -> PetRepository: Save updated pet state\nPetService -> PetStatusView: Notify pet state changes\nUser -> PetStatusView: Monitor pet status\nPetStatusViewModel -> PetService: Retrieve pet state\nPetService -> PetRepository: Load pet state\nPetService -> PetStatusView: Notify pet state changes\nUser -> PetStatusView: Observe pet deterioration\nPetStatusViewModel -> PetService: Monitor pet state\nPetService -> PetStatusView: Notify pet death\nPetStatusView -> PetDeathDialog: Display pet death dialog\nPetDeathDialog -> PetDeathDialogModel: Initialize\nUser -> PetDeathDialog: Start new game\nPetDeathDialogModel -> PetService: Create new pet\n@enduml",
+  "state_management_flow": "The application uses the Stacked architecture for state management. Each view has a corresponding ViewModel that manages the state and business logic for that view. The ViewModels interact with various services, such as the PetService and AnalyticService, to handle the application's core functionality.\n\nThe PetStatusViewModel and PetActionsViewModel manage the state related to the pet, including the pet's stats, mood, and actions. The PetShopSheetModel manages the state and logic for the pet shop, such as the user's available coins and the ability to purchase pet items.\n\nThe state is propagated from the ViewModels to the corresponding Views, which then update the UI to reflect the current state. User interactions in the Views trigger updates in the ViewModels, which in turn update the state and propagate those changes back to the UI.",
+  "navigation_flow": "The application's navigation is managed using the Stacked Router, defined in app.router.dart. The main entry point is the AppView, which initializes the Stacked architecture and displays the StartupView.\n\nAfter the startup logic is completed, the StartupViewModel navigates to the PetStatusView, which is the main hub for the user's pet management. From the PetStatusView, the user can navigate to the following screens:\n\n- PetActionsView: Allows the user to perform actions on the pet, such as feeding, cleaning, and playing.\n- PetShopSheet: Displays a bottom sheet that allows the user to purchase items for the pet using in-game coins.\n\nIf the pet dies, the PetStatusViewModel triggers the display of the PetDeathDialog, which gives the user the option to start a new game with a new pet.\n\nThe application also integrates with the Stacked Services for handling dialogs and bottom sheets, allowing for the display of custom UI components, such as the InfoAlertDialog and NoticeSheet, throughout the user's interactions."
 }
