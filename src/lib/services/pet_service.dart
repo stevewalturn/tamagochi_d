@@ -1,19 +1,21 @@
 import 'dart:async';
 import 'package:stacked/stacked_annotations.dart';
+import 'package:tamagochi_d/app/app.locator.dart';
 import 'package:tamagochi_d/models/pet_actions.dart';
 import 'package:tamagochi_d/models/pet_state.dart';
 import 'package:tamagochi_d/models/pet_stats.dart';
 import 'package:tamagochi_d/repository/pet_repository.dart';
 
 class PetService implements InitializableDependency {
-  final PetRepository _repository;
+  final _repository = locator<PetRepository>();
   PetState? _currentPet;
   Timer? _decayTimer;
   final _petStateController = StreamController<PetState>.broadcast();
 
   Stream<PetState> get petStateStream => _petStateController.stream;
+  PetState? get currentPet => _currentPet;
 
-  PetService(this._repository);
+  PetService();
 
   @override
   Future<void> init() async {
@@ -28,118 +30,96 @@ class PetService implements InitializableDependency {
     }
   }
 
+  void _startDecayTimer() {
+    _decayTimer?.cancel();
+    _decayTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      _decayPetStats();
+    });
+  }
+
   Future<void> createPet(String name) async {
-    try {
-      _currentPet = PetState.initial(name);
-      await _repository.savePet(_currentPet!);
-      _startDecayTimer();
-      _petStateController.add(_currentPet!);
-    } catch (e) {
-      throw Exception('Failed to create pet: Unable to initialize new pet');
-    }
+    final newPet = PetState.initial(name);
+    await _repository.savePet(newPet);
+    _currentPet = newPet;
+    _petStateController.add(newPet);
+    _startDecayTimer();
   }
 
   Future<void> performAction(PetAction action) async {
     if (_currentPet == null) {
-      throw Exception('No active pet found');
+      throw Exception('No pet available to perform action');
     }
 
     if (!action.canAfford(_currentPet!.coins)) {
       throw Exception('Not enough coins to perform this action');
     }
 
-    try {
-      final updatedStats = _calculateNewStats(action);
-      final updatedPet = _currentPet!.copyWith(
-        stats: updatedStats,
-        coins: _currentPet!.coins - action.cost,
-        mood: _calculateMood(updatedStats),
-      );
+    final updatedPet = _currentPet!.copyWith(
+      stats: _calculateNewStats(action),
+      coins: _currentPet!.coins - action.cost,
+    );
 
-      _currentPet = updatedPet;
-      await _repository.savePet(updatedPet);
-      _petStateController.add(updatedPet);
-    } catch (e) {
-      throw Exception('Failed to perform action: ${e.toString()}');
-    }
+    await _repository.savePet(updatedPet);
+    _currentPet = updatedPet;
+    _petStateController.add(updatedPet);
+  }
+
+  void _decayPetStats() {
+    if (_currentPet == null) return;
+
+    final updatedStats = _currentPet!.stats.copyWith(
+      hunger: _currentPet!.stats.hunger - 5,
+      happiness: _currentPet!.stats.happiness - 3,
+      energy: _currentPet!.stats.energy - 2,
+      hygiene: _currentPet!.stats.hygiene - 4,
+    );
+
+    final updatedPet = _currentPet!.copyWith(
+      stats: updatedStats,
+      mood: _calculateMood(updatedStats),
+    );
+
+    _repository.savePet(updatedPet);
+    _currentPet = updatedPet;
+    _petStateController.add(updatedPet);
   }
 
   PetStats _calculateNewStats(PetAction action) {
-    final currentStats = _currentPet!.stats;
     switch (action) {
       case PetAction.feed:
-        return currentStats.copyWith(
-          hunger: _clamp(currentStats.hunger + 30),
-          energy: _clamp(currentStats.energy + 10),
+        return _currentPet!.stats.copyWith(
+          hunger: _currentPet!.stats.hunger + 30,
+          energy: _currentPet!.stats.energy + 10,
         );
       case PetAction.play:
-        return currentStats.copyWith(
-          happiness: _clamp(currentStats.happiness + 20),
-          energy: _clamp(currentStats.energy - 10),
-          hunger: _clamp(currentStats.hunger - 10),
+        return _currentPet!.stats.copyWith(
+          happiness: _currentPet!.stats.happiness + 25,
+          energy: _currentPet!.stats.energy - 15,
         );
       case PetAction.clean:
-        return currentStats.copyWith(
-          hygiene: _clamp(currentStats.hygiene + 40),
-          happiness: _clamp(currentStats.happiness + 10),
+        return _currentPet!.stats.copyWith(
+          hygiene: _currentPet!.stats.hygiene + 40,
+          happiness: _currentPet!.stats.happiness + 5,
         );
       case PetAction.heal:
-        return currentStats.copyWith(
-          health: _clamp(currentStats.health + 50),
-          energy: _clamp(currentStats.energy + 20),
+        return _currentPet!.stats.copyWith(
+          health: _currentPet!.stats.health + 50,
+          energy: _currentPet!.stats.energy - 10,
         );
       case PetAction.sleep:
-        return currentStats.copyWith(
-          energy: _clamp(currentStats.energy + 40),
-          health: _clamp(currentStats.health + 10),
+        return _currentPet!.stats.copyWith(
+          energy: _currentPet!.stats.energy + 60,
+          hunger: _currentPet!.stats.hunger - 10,
         );
     }
   }
 
-  int _clamp(int value) => value.clamp(0, 100);
-
   PetMood _calculateMood(PetStats stats) {
+    if (stats.isDead) return PetMood.sad;
+    if (_currentPet!.isSleeping) return PetMood.sleeping;
     if (stats.health < 30) return PetMood.sick;
-    if (stats.happiness < 30) return PetMood.sad;
-    if (stats.happiness > 70) return PetMood.happy;
+    if (stats.happiness < 30 || stats.hunger < 30) return PetMood.sad;
+    if (stats.happiness > 70 && stats.hunger > 70) return PetMood.happy;
     return PetMood.neutral;
-  }
-
-  void _startDecayTimer() {
-    _decayTimer?.cancel();
-    _decayTimer = Timer.periodic(
-      const Duration(minutes: 1),
-      (_) => _applyDecay(),
-    );
-  }
-
-  Future<void> _applyDecay() async {
-    if (_currentPet == null) return;
-
-    try {
-      final currentStats = _currentPet!.stats;
-      final updatedStats = currentStats.copyWith(
-        hunger: _clamp(currentStats.hunger - 2),
-        happiness: _clamp(currentStats.happiness - 1),
-        energy: _clamp(currentStats.energy - 1),
-        hygiene: _clamp(currentStats.hygiene - 1),
-      );
-
-      final updatedPet = _currentPet!.copyWith(
-        stats: updatedStats,
-        mood: _calculateMood(updatedStats),
-      );
-
-      _currentPet = updatedPet;
-      await _repository.savePet(updatedPet);
-      _petStateController.add(updatedPet);
-    } catch (e) {
-      throw Exception('Failed to apply decay: ${e.toString()}');
-    }
-  }
-
-  void dispose() {
-    _decayTimer?.cancel();
-    _petStateController.close();
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:stacked/stacked.dart';
 import 'package:stacked_services/stacked_services.dart';
 import 'package:tamagochi_d/models/pet_actions.dart';
+import 'package:tamagochi_d/models/pet_state.dart';
 import 'package:tamagochi_d/ui/bottom_sheets/pet_shop/pet_shop_sheet_model.dart';
 import 'package:tamagochi_d/ui/common/app_colors.dart';
 import 'package:tamagochi_d/ui/common/ui_helpers.dart';
@@ -34,20 +35,25 @@ class PetShopSheet extends StackedView<PetShopSheetModel> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
+          const Text(
             'Pet Shop',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
             ),
           ),
           verticalSpaceMedium,
-          Text(
-            'Available Coins: ${viewModel.availableCoins}',
-            style: const TextStyle(
-              fontSize: 16,
-              color: kcPrimaryColor,
-            ),
+          StreamBuilder<PetState>(
+            stream: viewModel.petStream,
+            builder: (context, snapshot) {
+              return Text(
+                'Available Coins: ${snapshot.data?.coins ?? 0}',
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: kcPrimaryColor,
+                ),
+              );
+            },
           ),
           verticalSpaceMedium,
           if (viewModel.modelError != null)
@@ -92,7 +98,7 @@ class _ShopItem extends StatelessWidget {
   });
 
   @override
-  Widget builder(BuildContext context) {
+  Widget build(BuildContext context) {
     return ListTile(
       title: Text(action.description),
       trailing: Text('${action.cost} coins'),

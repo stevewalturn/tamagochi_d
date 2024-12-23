@@ -1,6 +1,7 @@
 import 'package:stacked/stacked.dart';
 import 'package:tamagochi_d/app/app.locator.dart';
 import 'package:tamagochi_d/models/pet_actions.dart';
+import 'package:tamagochi_d/models/pet_state.dart';
 import 'package:tamagochi_d/services/pet_service.dart';
 
 class PetShopSheetModel extends BaseViewModel {
@@ -8,10 +9,10 @@ class PetShopSheetModel extends BaseViewModel {
   String? _modelError;
 
   String? get modelError => _modelError;
-  int get availableCoins => _petService.petStateStream.value?.coins ?? 0;
+  Stream<PetState> get petStream => _petService.petStateStream;
 
   bool canPurchase(PetAction action) {
-    final currentPet = _petService.petStateStream.value;
+    final currentPet = _petService.currentPet;
     if (currentPet == null) {
       _modelError = 'No pet available to make purchases';
       return false;

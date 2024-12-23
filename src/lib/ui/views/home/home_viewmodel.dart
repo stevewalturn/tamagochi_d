@@ -35,12 +35,12 @@ class HomeViewModel extends StreamViewModel<PetState> {
       title: 'Name Your Pet',
       description: 'Enter a name for your new pet:',
       barrierDismissible: true,
-      dialogPlatform: DialogPlatform.Material,
     );
 
     if (response?.confirmed ?? false) {
       try {
-        await _petService.createPet(response!.data ?? 'My Pet');
+        final name = response?.data?.toString() ?? 'My Pet';
+        await _petService.createPet(name);
         _modelError = null;
       } catch (e) {
         _modelError = 'Failed to create pet. Please try again.';
@@ -84,12 +84,9 @@ class HomeViewModel extends StreamViewModel<PetState> {
   }
 
   Future<void> _showPetDeathDialog() async {
-    final response = await _dialogService.showCustomDialog(
-      variant: DialogType.custom,
+    final response = await _dialogService.showDialog(
       title: 'Your Pet Has Passed Away',
       description: 'Would you like to start with a new pet?',
-      mainButtonTitle: 'Yes',
-      secondaryButtonTitle: 'No',
     );
 
     if (response?.confirmed ?? false) {

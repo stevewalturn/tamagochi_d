@@ -4,29 +4,14 @@ class PetRepository {
   PetState? _currentPet;
 
   Future<void> savePet(PetState pet) async {
-    try {
-      // TODO: Implement persistent storage
-      _currentPet = pet;
-    } catch (e) {
-      throw Exception('Failed to save pet: Unable to store pet data');
-    }
+    _currentPet = pet;
   }
 
   Future<PetState?> loadPet() async {
-    try {
-      // TODO: Implement persistent storage
-      return _currentPet;
-    } catch (e) {
-      throw Exception('Failed to load pet: Unable to retrieve pet data');
-    }
+    return _currentPet;
   }
 
   Future<void> deletePet() async {
-    try {
-      // TODO: Implement persistent storage
-      _currentPet = null;
-    } catch (e) {
-      throw Exception('Failed to delete pet: Unable to remove pet data');
-    }
+    _currentPet = null;
   }
 }
